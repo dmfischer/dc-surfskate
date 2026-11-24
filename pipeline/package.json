@@ -1,0 +1,14 @@
+{
+  "name": "@dc-surfskate/pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "tsx src/stages/fetch.ts",
+    "join": "tsx src/stages/join.ts",
+    "grade": "tsx src/stages/grade.ts",
+    "score": "tsx src/stages/score.ts",
+    "build": "tsx src/build.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  }
+}

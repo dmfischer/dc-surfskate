@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+
+# Generated data: raw downloads, LiDAR tiles, intermediate and scored output
+/data/

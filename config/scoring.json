@@ -1,0 +1,61 @@
+{
+  "_note": "Starting guesses from README 'Scoring model'. Tune against /labels. Grade is percent, + = downhill in direction of travel.",
+  "hardFilters": {
+    "excludedFunctionalClasses": ["interstate", "freeway", "expressway", "ramp"],
+    "maxDownhillGradePct": 8,
+    "maxAadt": 15000,
+    "excludedSurfaces": ["brick", "cobble", "unpaved"]
+  },
+  "staticWeights": {
+    "surface": 0.35,
+    "grade": 0.25,
+    "traffic": 0.25,
+    "runQuality": 0.15
+  },
+  "surface": {
+    "freshness": { "fullScoreMonths": 6, "zeroScoreMonths": 36 },
+    "materialFactor": { "asphalt": 1.0, "concrete": 0.6 },
+    "potholePenaltyPerOpenRequest": 0.1
+  },
+  "grade": {
+    "curve": [
+      { "pct": -3, "score": 0.2 },
+      { "pct": 0, "score": 0.6 },
+      { "pct": 1, "score": 0.6 },
+      { "pct": 1, "score": 1.0 },
+      { "pct": 4, "score": 1.0 },
+      { "pct": 4, "score": 0.6 },
+      { "pct": 6, "score": 0.6 },
+      { "pct": 6, "score": 0.2 },
+      { "pct": 8, "score": 0.2 }
+    ],
+    "stdPenaltyPerPct": 0.1,
+    "steepLast20mThresholdPct": 6,
+    "steepLast20mPenalty": 0.2
+  },
+  "traffic": {
+    "aadtFullScore": 1000,
+    "aadtZeroScore": 15000,
+    "imputedAadtByFunctionalClass": {
+      "local": 800,
+      "collector": 5000,
+      "minor_arterial": 10000,
+      "principal_arterial": 15000
+    },
+    "bikeLaneBonus": 0.1,
+    "speedLimit20Bonus": 0.1
+  },
+  "runQuality": {
+    "lengthCapM": 400,
+    "weights": { "length": 0.5, "bottomControl": 0.3, "crashes": 0.2 },
+    "bottomControlScore": { "stop": 1.0, "signal": 0.8, "none": 0.3 },
+    "crashPenaltyPerCrash3yr": 0.1
+  },
+  "conditions": {
+    "wetness": { "recentPrecipMm6h": 2 },
+    "temperatureF": { "idealMin": 50, "idealMax": 85, "zeroAt": 35 },
+    "wind": { "penaltyAboveMph": 15 },
+    "daylight": { "afterDarkFactor": 0.3 },
+    "leafSeason": { "months": [10, 11], "factor": 0.9 }
+  }
+}
