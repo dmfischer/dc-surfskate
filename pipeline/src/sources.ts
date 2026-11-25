@@ -1,28 +1,198 @@
 /**
  * Registry of external datasets. Per CLAUDE.md rule 7: fetch a sample and record
  * the *actual* field names here before writing any join against a dataset.
+ *
+ * DDOT linear referencing system (LRS): almost every DDOT layer is an "event"
+ * on a route, keyed by ROUTEID + FROMMEASURE/TOMEASURE (meters along the route).
+ * RoadwayBlocks uses the same key, so attributes join to blocks by interval
+ * overlap on the same route — no geometry snapping needed.
+ *
+ * Native CRS for all DDOT services is EPSG:26985 (NAD83 / Maryland, meters).
+ * Query with `outSR=4326` to get WGS84, or keep 26985 for metric math.
+ *
+ * LRS event layers carry FROMDATE/TODATE; use `TODATE IS NULL` for current events.
  */
 export interface DataSource {
   id: string;
   name: string;
+  /** ArcGIS REST layer URL (append /query) or direct download URL. */
   url: string;
   /** Data vintage, e.g. 2024. DC publishes separate datasets per year. */
   year?: number;
   /** Native CRS of the response; reproject to EPSG:4326 on ingest. */
-  crs?: "EPSG:4326" | "EPSG:3857" | string;
-  /** Verified field names from an inspected sample. Empty until audited. */
+  crs?: "EPSG:4326" | "EPSG:3857" | "EPSG:26985" | string;
+  /** Approximate record count at time of audit. */
+  count?: number;
+  /** Max records per query page (paginate with resultOffset). */
+  maxRecordCount?: number;
+  /** Verified field names from an inspected sample → meaning. Empty until audited. */
   fields: Record<string, string>;
   verifiedOn?: string;
   notes?: string;
 }
 
+const DDOT = "https://rh.dcgis.dc.gov/dcgis/rest/services/DDOT";
+
 export const sources: DataSource[] = [
+  {
+    id: "roadway_blocks",
+    name: "DDOT Roadway Blocks — Block",
+    url: `${DDOT}/RoadwayBlocks/MapServer/2`,
+    crs: "EPSG:26985",
+    count: 13833,
+    maxRecordCount: 1000,
+    fields: {
+      BlockID: "block id (route + from/to intersection ids); join key for segment_id",
+      BlockKey: "hash id of block",
+      RouteID: "LRS route id",
+      FromMeasure: "start measure on route (m); A end",
+      ToMeasure: "end measure on route (m); B end",
+      RouteName: "street name, e.g. 'L ST NW'",
+      FromStreet: "cross street at A end",
+      ToStreet: "cross street at B end",
+      FromIntersectionID: "intersection id at A end",
+      ToIntersectionID: "intersection id at B end",
+      HundredBlock: "address range label",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Directionality field exists but is NULL for every row; take one-way from roadway_segments instead.",
+  },
+  {
+    id: "roadway_segments",
+    name: "DDOT LRSSupport — Roadway Segment",
+    url: `${DDOT}/LRSSupport/MapServer/3`,
+    crs: "EPSG:26985",
+    count: 33611,
+    maxRecordCount: 1000,
+    fields: {
+      ROADWAYSEGID: "segment id",
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      ROUTENAME: "street name",
+      ROADTYPE: "1=Street 2=Service Road 3=Ramp 4=Alley 5=Driveway 6=Trail 7=Walkway 8=Streetcar",
+      DIRECTIONALITY: "0=One way (digitizing dir) 1=One way (against digitizing) 2=Two way 3=Unknown",
+      STREETSEGID: "street segment id",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Streets (ROADTYPE=1): 18,203 two-way, 1,983 one-way with digitizing, 1,679 one-way against. Use ROADTYPE=3 for the ramp hard filter.",
+  },
+  {
+    id: "pci_fy25",
+    name: "DDOT Pavement Condition Index FY-25",
+    url: `${DDOT}/PavementConditionIndex/MapServer/5`,
+    year: 2025,
+    crs: "EPSG:26985",
+    count: 5741,
+    maxRecordCount: 1000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      PCI: "pavement condition index, 0–100 (→ condition_rating)",
+      PCICTEGORY: "Excellent / Good / Fair / Poor / Very Poor",
+      SURFACE: "AC (asphalt) / PCC (concrete) / X",
+      DATE1: "inspection date (range 2019-02 to 2026-03)",
+      ROUTENAME: "street name",
+      FROMSTREET: "cross street at start",
+      TOSTREET: "cross street at end",
+      WIDTH: "section width (m)",
+      LANES: "lane count",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Other years are layers 0–14 (FY-12..FY-24). 5,741 sections vs ~13.8k blocks, so coverage is partial; check overlap during join. CONST_DATE / LSTMJRWRKD were null in the sample.",
+  },
+  {
+    id: "lrs_year_last_improvement",
+    name: "DDOT LRS — Year Last Improvement (HPMS)",
+    url: `${DDOT}/DDOTLRS/MapServer/47`,
+    crs: "EPSG:26985",
+    count: 3951,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      YEAR_LAST_IMPROV: "year of last surface improvement (year only)",
+      FROMDATE: "event start date",
+      TODATE: "event end date; null = current",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Candidate paving-freshness signal (2024: 640, 2025: 525 sections). Year precision only; HPMS network, so local streets are probably sparse.",
+  },
+  {
+    id: "lrs_surface_type",
+    name: "DDOT LRS — Surface Type (HPMS)",
+    url: `${DDOT}/DDOTLRS/MapServer/44`,
+    crs: "EPSG:26985",
+    count: 35263,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      SURFACE_TYPE: "HPMS code: 1=Unpaved 2=Bituminous 3–5=PCC variants 6–8=AC overlays; also 0, 11–13 (see layer domain)",
+      TODATE: "null = current",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Code 0 is the most common value (12,589); look up its meaning in the full domain before mapping.",
+  },
+  {
+    id: "lrs_aadt",
+    name: "DDOT LRS — AADT",
+    url: `${DDOT}/DDOTLRS/MapServer/24`,
+    crs: "EPSG:26985",
+    count: 107135,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      AADT: "annual average daily traffic",
+      AADT_YEAR: "count year (2014–2023)",
+      TODATE: "null for all rows",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "Many count years coexist; pick the latest AADT_YEAR per interval. May supersede traffic_volume_2024.",
+  },
+  {
+    id: "lrs_speed_limit",
+    name: "DDOT LRS — Speed Limit",
+    url: `${DDOT}/DDOTLRS/MapServer/18`,
+    crs: "EPSG:26985",
+    count: 16433,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      SPEED_LIMIT: "mph",
+      TODATE: "null = current",
+    },
+    verifiedOn: "2026-11-24",
+  },
+  {
+    id: "lrs_stop_sign",
+    name: "DDOT LRS — Stop Sign (HPMS)",
+    url: `${DDOT}/DDOTLRS/MapServer/35`,
+    crs: "EPSG:26985",
+    count: 3166,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      STOP_SIGNS: "count of stop signs on the section (0/1/2)",
+    },
+    verifiedOn: "2026-11-24",
+    notes: "A per-section count on the HPMS network, not a control at each endpoint, so it is weak for bottom_control. Related layers: SignalType (34), NumberSignal (30).",
+  },
   {
     id: "traffic_volume_2024",
     name: "2024 Traffic Volume (AADT by roadway block)",
     url: "https://opendata.dc.gov/api/download/v1/items/948099175f3a44cca2d6a633cf3ec35a/geojson?layers=5",
     year: 2024,
     fields: {},
-    notes: "Not yet audited.",
+    notes: "Not yet audited. Compare against lrs_aadt.",
   },
 ];
