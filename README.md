@@ -119,12 +119,20 @@ Penalties: high grade variance along the segment (dips/kickers), and a steep las
 
 ## Data sources
 
+Most DDOT data is served from one ArcGIS server, `https://rh.dcgis.dc.gov/dcgis/rest/services/DDOT`. Its layers are linear-referenced: each record is keyed by `ROUTEID` plus a from/to measure in meters, so attributes join to blocks by overlapping intervals on the same route. The native CRS is EPSG:26985. Checked field names are in `pipeline/src/sources.ts`.
+
 | Data | Source | Notes |
 |---|---|---|
-| Street segments (join key) | Open Data DC: Roadway Blocks / Street Centerlines | Geometry, functional class, one-way, speed limit |
+| Street segments (join key) | DDOT `RoadwayBlocks/MapServer/2` (Block) | ~13.8k blocks with `BlockID`, `RouteID` and measures. Its `Directionality` field is empty. |
+| One-way / road type | DDOT `LRSSupport/MapServer/3` (Roadway Segment) | `DIRECTIONALITY` (0/1 one-way, 2 two-way) and `ROADTYPE` (3 = ramp) |
+| Pavement condition | DDOT `PavementConditionIndex/MapServer/5` (FY-25) | PCI 0–100 with inspection date and AC/PCC surface. ~5.7k sections, so partial coverage. |
+| Last improvement year | DDOT `DDOTLRS/MapServer/47` | HPMS network only, and gives the year only |
+| Surface type | DDOT `DDOTLRS/MapServer/44` | HPMS surface codes |
+| AADT (alternative) | DDOT `DDOTLRS/MapServer/24` | Count years 2014–2023 overlap; take the latest per interval |
+| Speed limit | DDOT `DDOTLRS/MapServer/18` | mph |
+| Stop signs / signals | DDOT `DDOTLRS/MapServer/35`, `/34`, `/30` | Counts per HPMS section, not controls at each endpoint, so weak for `bottom_control` |
 | Paving projects | DDOT Paving Plan / PaveDC (ArcGIS item `76784c82ddcb4fb798769138f27c0ed3`) | Open-data copy may lag; the live PaveDC map layer may be fresher. Paving season is spring–fall. |
 | Paving (secondary) | DDOT Weekly Construction Updates | Press releases, two-week lookahead, not an API |
-| Pavement condition | DDOT Pavement Management System | **Unverified** whether block-level ratings are public |
 | Potholes | Open Data DC: 311 service requests | Snap to nearest segment |
 | Elevation / grade | Open Data DC: 2024 LiDAR Hydro-Enforced Digital Terrain Model (1 m) | Redacted areas near federal sites. GeoTIFFs may require emailing open.data@dc.gov; NOAA Digital Coast also mirrors DC DEMs. |
 | Traffic volume | Open Data DC: 2024 Traffic Volume (AADT by roadway block) | Counts are on a 3-year cycle at HPMS locations; many local streets have no count |
