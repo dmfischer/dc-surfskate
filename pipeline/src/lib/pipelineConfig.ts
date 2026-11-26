@@ -8,6 +8,11 @@ export interface PipelineConfig {
   dtm: {
     /** Max width/height (px) of one exportImage tile; clamped to the service's maxImageWidth/Height. */
     exportTilePx: number;
+    /**
+     * Extra margin (m) around the area bbox when tiling. Blocks that intersect the
+     * ward can run well outside it (Ward 1: up to ~220 m beyond the 50 m-buffered bbox).
+     */
+    tileMarginM: number;
     pixelSizeM: number;
     /** Value passed as exportImage noData= and expected back in the GeoTIFF's GDAL_NODATA tag. */
     nodataValue: number;

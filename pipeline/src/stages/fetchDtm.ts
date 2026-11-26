@@ -37,20 +37,32 @@ interface ImageServiceInfo {
   capabilities: string;
 }
 
-/** Split the area bbox (snapped outward to the pixel grid) into export tiles. */
+/**
+ * Split a bbox (snapped outward to the pixel grid) into abutting export tiles of
+ * at most tilePx per side, sized evenly so there are no thin sliver tiles.
+ */
 export function planTiles(bbox: Area["bbox"], pixelSizeM: number, tilePx: number): DtmTileEntry[] {
-  const snapDown = (v: number) => Math.floor(v / pixelSizeM) * pixelSizeM;
-  const snapUp = (v: number) => Math.ceil(v / pixelSizeM) * pixelSizeM;
-  const [x0, y0, x1, y1] = [snapDown(bbox[0]), snapDown(bbox[1]), snapUp(bbox[2]), snapUp(bbox[3])];
-  const step = tilePx * pixelSizeM;
+  const px0 = Math.floor(bbox[0] / pixelSizeM);
+  const py0 = Math.floor(bbox[1] / pixelSizeM);
+  const nx = Math.ceil(bbox[2] / pixelSizeM) - px0;
+  const ny = Math.ceil(bbox[3] / pixelSizeM) - py0;
+  /** Pixel offsets of tile edges along one axis, evenly split. */
+  const edges = (n: number) => {
+    const k = Math.ceil(n / tilePx);
+    return Array.from({ length: k + 1 }, (_, i) => Math.round((i * n) / k));
+  };
+  const xe = edges(nx);
+  const ye = edges(ny);
   const tiles: DtmTileEntry[] = [];
-  for (let ty = y0; ty < y1; ty += step) {
-    for (let tx = x0; tx < x1; tx += step) {
-      const xmax = Math.min(tx + step, x1);
-      const ymax = Math.min(ty + step, y1);
-      const width = Math.round((xmax - tx) / pixelSizeM);
-      const height = Math.round((ymax - ty) / pixelSizeM);
-      tiles.push({ file: `dtm_${tx}_${ty}_${width}x${height}.tif`, bbox: [tx, ty, xmax, ymax], width, height });
+  for (let j = 0; j + 1 < ye.length; j++) {
+    for (let i = 0; i + 1 < xe.length; i++) {
+      const xmin = (px0 + xe[i]!) * pixelSizeM;
+      const xmax = (px0 + xe[i + 1]!) * pixelSizeM;
+      const ymin = (py0 + ye[j]!) * pixelSizeM;
+      const ymax = (py0 + ye[j + 1]!) * pixelSizeM;
+      const width = xe[i + 1]! - xe[i]!;
+      const height = ye[j + 1]! - ye[j]!;
+      tiles.push({ file: `dtm_${xmin}_${ymin}_${width}x${height}.tif`, bbox: [xmin, ymin, xmax, ymax], width, height });
     }
   }
   return tiles;
@@ -179,9 +191,11 @@ export async function run(opts: { refresh?: boolean } = {}): Promise<void> {
   const tilePx = Math.min(cfg.dtm.exportTilePx, info.maxImageWidth, info.maxImageHeight);
 
   const area = await loadArea();
-  const tiles = planTiles(area.bbox, cfg.dtm.pixelSizeM, tilePx);
+  const m = cfg.dtm.tileMarginM;
+  const bbox: Area["bbox"] = [area.bbox[0] - m, area.bbox[1] - m, area.bbox[2] + m, area.bbox[3] + m];
+  const tiles = planTiles(bbox, cfg.dtm.pixelSizeM, tilePx);
   console.log(
-    `[fetch:dtm] ${area.name}: bbox ${area.bbox.map((v) => v.toFixed(0)).join(",")} → ${tiles.length} tiles of ≤ ${tilePx} px ` +
+    `[fetch:dtm] ${area.name}: bbox ${bbox.map((v) => v.toFixed(0)).join(",")} (area + ${m} m) → ${tiles.length} tiles of ≤ ${tilePx} px ` +
       `(service max ${info.maxImageWidth}×${info.maxImageHeight})`,
   );
 

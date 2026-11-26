@@ -11,6 +11,7 @@
   },
   "dtm": {
     "exportTilePx": 2000,
+    "tileMarginM": 300,
     "pixelSizeM": 1,
     "nodataValue": -9999,
     "nodataBelowM": -50,
