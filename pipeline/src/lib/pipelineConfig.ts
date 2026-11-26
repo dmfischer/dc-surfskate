@@ -14,6 +14,10 @@ export interface PipelineConfig {
     minCoverage: number;
     maxGapM: number;
   };
+  join: {
+    /** Minimum fraction (0–1) of a block's length covered by PCI sections before PCI is reported. */
+    minPciCoverage: number;
+  };
 }
 
 export interface AreaConfig {

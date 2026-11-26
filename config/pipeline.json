@@ -22,5 +22,9 @@
     "medianWindow": 3,
     "minCoverage": 0.8,
     "maxGapM": 15
+  },
+  "join": {
+    "_note": "PCI fields are null (never 0) when PCI sections cover less than minPciCoverage (0-1) of a block's length.",
+    "minPciCoverage": 0.5
   }
 }

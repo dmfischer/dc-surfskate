@@ -126,6 +126,7 @@ Most DDOT data is served from one ArcGIS server, `https://rh.dcgis.dc.gov/dcgis/
 | Street segments (join key) | DDOT `RoadwayBlocks/MapServer/2` (Block) | ~13.8k blocks with `BlockID`, `RouteID` and measures. Its `Directionality` field is empty. |
 | One-way / road type | DDOT `LRSSupport/MapServer/3` (Roadway Segment) | `DIRECTIONALITY` (0/1 one-way, 2 two-way) and `ROADTYPE` (3 = ramp) |
 | Pavement condition | DDOT `PavementConditionIndex/MapServer/5` (FY-25) | PCI 0–100 with inspection date and AC/PCC surface. ~5.7k sections, so partial coverage. |
+| Roughness (IRI) | DDOT `DDOTLRS/MapServer/39` | Surveys 2010–2020 (latest 2020-01); several years overlap, take the latest `IRI_DATE`. Covers about the same streets as PCI. Legacy `maps2 .../DDOT/Pavement/MapServer/3` is IRI 2014 only. |
 | Last improvement year | DDOT `DDOTLRS/MapServer/47` | HPMS network only, and gives the year only |
 | Surface type | DDOT `DDOTLRS/MapServer/44` | HPMS surface codes |
 | AADT (alternative) | DDOT `DDOTLRS/MapServer/24` | Count years 2014–2023 overlap; take the latest per interval |
