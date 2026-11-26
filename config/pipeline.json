@@ -13,7 +13,11 @@
     "exportTilePx": 2000,
     "pixelSizeM": 1,
     "nodataValue": -9999,
-    "nodataBelowM": -50
+    "nodataBelowM": -50,
+    "pixelSizeToleranceM": 0.001,
+    "plausibleMinM": -15,
+    "plausibleMaxM": 140,
+    "requestRetries": 3
   },
   "grade": {
     "sampleSpacingM": 5,
@@ -21,6 +25,7 @@
     "localGradeWindowM": 10,
     "medianWindow": 3,
     "minCoverage": 0.8,
-    "maxGapM": 15
+    "maxGapM": 15,
+    "structureMinOverlapM": 2
   }
 }

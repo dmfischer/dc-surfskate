@@ -5,7 +5,22 @@ import { CONFIG_DIR } from "./paths.js";
 export interface PipelineConfig {
   crs: { work: string; output: string };
   arcgis: { userAgent: string; pageSize: number; requestDelayMs: number };
-  dtm: { exportTilePx: number; pixelSizeM: number; nodataValue: number; nodataBelowM: number };
+  dtm: {
+    /** Max width/height (px) of one exportImage tile; clamped to the service's maxImageWidth/Height. */
+    exportTilePx: number;
+    pixelSizeM: number;
+    /** Value passed as exportImage noData= and expected back in the GeoTIFF's GDAL_NODATA tag. */
+    nodataValue: number;
+    /** Samples below this elevation are treated as nodata. */
+    nodataBelowM: number;
+    /** Allowed |pixel size − pixelSizeM| when verifying a tile. */
+    pixelSizeToleranceM: number;
+    /** Valid DTM values outside [plausibleMinM, plausibleMaxM] fail tile verification. */
+    plausibleMinM: number;
+    plausibleMaxM: number;
+    /** Attempts per exportImage request before giving up. */
+    requestRetries: number;
+  };
   grade: {
     sampleSpacingM: number;
     endWindowM: number;
@@ -13,6 +28,8 @@ export interface PipelineConfig {
     medianWindow: number;
     minCoverage: number;
     maxGapM: number;
+    /** A bridge/tunnel interval must overlap a block by more than this (m) to flag it. */
+    structureMinOverlapM: number;
   };
 }
 
