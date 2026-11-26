@@ -383,3 +383,22 @@ describe("structureOverlap", () => {
     expect(structureFlag([])).toBeNull();
   });
 });
+
+describe("planTiles", () => {
+  it("covers the snapped bbox with abutting tiles no larger than tilePx", async () => {
+    const { planTiles } = await import("../src/stages/fetchDtm.js");
+    const tiles = planTiles([395236.4, 138083.2, 399296.7, 141499.9], 1, 2000);
+    expect(tiles).toHaveLength(6);
+    expect(Math.min(...tiles.map((t) => t.bbox[0]))).toBe(395236);
+    expect(Math.max(...tiles.map((t) => t.bbox[2]))).toBe(399297);
+    expect(Math.max(...tiles.map((t) => t.bbox[3]))).toBe(141500);
+    for (const t of tiles) {
+      expect(t.width).toBeLessThanOrEqual(2000);
+      expect(t.height).toBeLessThanOrEqual(2000);
+      expect(t.bbox[2] - t.bbox[0]).toBe(t.width);
+      expect(t.bbox[3] - t.bbox[1]).toBe(t.height);
+    }
+    const area = tiles.reduce((s, t) => s + t.width * t.height, 0);
+    expect(area).toBe((399297 - 395236) * (141500 - 138083));
+  });
+});
