@@ -37,4 +37,14 @@ export default defineConfig({
   // MapLibre 6 loads maplibre-gl-worker.mjs relative to its own module URL;
   // pre-bundling moves the module into .vite/deps and breaks that path.
   optimizeDeps: { exclude: ["maplibre-gl"] },
+  build: {
+    rollupOptions: {
+      output: {
+        // Emit the MapLibre worker as .js, not .mjs: static hosts (e.g. S3 console uploads) often
+        // lack a MIME type for .mjs, and browsers refuse module workers served as octet-stream.
+        assetFileNames: (asset) =>
+          asset.names?.some((n) => n.endsWith(".mjs")) ? "assets/[name]-[hash].js" : "assets/[name]-[hash][extname]",
+      },
+    },
+  },
 });
