@@ -2,6 +2,7 @@ import { run as fetch } from "./stages/fetch.js";
 import { run as fetchDtm } from "./stages/fetchDtm.js";
 import { run as join } from "./stages/join.js";
 import { run as grade } from "./stages/grade.js";
+import { run as score } from "./stages/score.js";
 import { run as exportSegments } from "./stages/export.js";
 
 // Fetch stages reuse cached downloads; pass --refresh to re-download.
@@ -11,5 +12,5 @@ await fetch({ refresh });
 await join();
 await fetchDtm({ refresh });
 await grade();
+await score();
 await exportSegments();
-// Scoring (stages/score.ts) is not implemented yet.

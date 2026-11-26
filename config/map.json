@@ -7,25 +7,69 @@
   "pci": {
     "label": "Pavement condition (PCI FY-25)",
     "stops": [
-      [0, "#d73027"],
-      [40, "#fc8d59"],
-      [70, "#fee08b"],
-      [85, "#1a9850"]
+      [
+        0,
+        "#d73027"
+      ],
+      [
+        40,
+        "#fc8d59"
+      ],
+      [
+        70,
+        "#fee08b"
+      ],
+      [
+        85,
+        "#1a9850"
+      ]
     ],
-    "legend": ["< 40 poor", "40–70 fair", "70–85 good", "≥ 85 excellent"]
+    "legend": [
+      "< 40 poor",
+      "40–70 fair",
+      "70–85 good",
+      "≥ 85 excellent"
+    ]
   },
   "grade": {
     "label": "Grade, |mean| % along street",
     "stops": [
-      [0, "#1a9850"],
-      [1, "#17a2b8"],
-      [4, "#f0a202"],
-      [6, "#d7301f"],
-      [8, "#7b3294"]
+      [
+        0,
+        "#1a9850"
+      ],
+      [
+        1,
+        "#17a2b8"
+      ],
+      [
+        4,
+        "#f0a202"
+      ],
+      [
+        6,
+        "#d7301f"
+      ],
+      [
+        8,
+        "#7b3294"
+      ]
     ],
-    "legend": ["< 1% flat", "1–4%", "4–6%", "6–8%", "> 8%"],
+    "legend": [
+      "< 1% flat",
+      "1–4%",
+      "4–6%",
+      "6–8%",
+      "> 8%"
+    ],
     "flatBelowPct": 0.5,
-    "unreliableFlags": ["bridge", "tunnel", "insufficient_elevation", "outside_dtm", "no_grade"]
+    "unreliableFlags": [
+      "bridge",
+      "tunnel",
+      "insufficient_elevation",
+      "outside_dtm",
+      "no_grade"
+    ]
   },
   "smooth": {
     "label": "Smooth & gentle",
@@ -34,5 +78,73 @@
     "maxAbsGrade": 4,
     "color": "#2563eb",
     "otherColor": "#d0d0d0"
+  },
+  "traffic": {
+    "label": "Traffic, 2025 AADT (vehicles/day)",
+    "stops": [
+      [
+        0,
+        "#1a9850"
+      ],
+      [
+        1000,
+        "#91cf60"
+      ],
+      [
+        3000,
+        "#fee08b"
+      ],
+      [
+        7000,
+        "#fc8d59"
+      ],
+      [
+        15000,
+        "#d73027"
+      ]
+    ],
+    "legend": [
+      "< 1,000",
+      "1,000–3,000",
+      "3,000–7,000",
+      "7,000–15,000",
+      "≥ 15,000 (filtered)"
+    ],
+    "imputedLabel": "No count: estimated from street type"
+  },
+  "score": {
+    "label": "Static score, best direction (0–1)",
+    "stops": [
+      [
+        0,
+        "#d73027"
+      ],
+      [
+        0.4,
+        "#fc8d59"
+      ],
+      [
+        0.55,
+        "#fee08b"
+      ],
+      [
+        0.7,
+        "#91cf60"
+      ],
+      [
+        0.85,
+        "#1a9850"
+      ]
+    ],
+    "legend": [
+      "< 0.40",
+      "0.40–0.55",
+      "0.55–0.70",
+      "0.70–0.85",
+      "≥ 0.85"
+    ],
+    "filteredLabel": "Filtered (busy, too steep, no elevation)",
+    "lowConfidenceOpacity": 0.45,
+    "lowConfidenceLabel": "Faded: score missing PCI or reliable grade"
   }
 }

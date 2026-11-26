@@ -32,6 +32,7 @@ export interface DataSource {
 }
 
 const DDOT = "https://rh.dcgis.dc.gov/dcgis/rest/services/DDOT";
+const TRAFFIC = "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Transportation_TrafficVolume_WebMercator/MapServer";
 
 export const sources: DataSource[] = [
   {
@@ -299,10 +300,53 @@ export const sources: DataSource[] = [
   {
     id: "traffic_volume_2024",
     name: "2024 Traffic Volume (AADT by roadway block)",
-    url: "https://opendata.dc.gov/api/download/v1/items/948099175f3a44cca2d6a633cf3ec35a/geojson?layers=5",
+    url: `${TRAFFIC}/5`,
     year: 2024,
+    crs: "EPSG:3857",
+    count: 21942,
+    maxRecordCount: 2000,
     fields: {},
-    notes: "Not yet audited. Compare against lrs_aadt.",
+    verifiedOn: "2026-11-25",
+    notes:
+      "Open Data item 948099175f3a44cca2d6a633cf3ec35a points at this layer. Same schema as traffic_volume_2025; superseded by it. All rows AADT_YEAR 2024.",
+  },
+  {
+    id: "traffic_volume_2025",
+    name: "DCGIS Traffic Volume 2025 (AADT, LRS events)",
+    url: `${TRAFFIC}/6`,
+    year: 2025,
+    crs: "EPSG:3857",
+    maxRecordCount: 2000,
+    fields: {
+      ROUTEID: "LRS route id (same keys as DDOT blocks)",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      AADT: "annual average daily traffic (Integer)",
+      AADT_YEAR: "2025 for every row",
+      TODATE: "null for every row",
+    },
+    verifiedOn: "2026-11-25",
+    notes:
+      "One layer per year (2006–2025) in Transportation_TrafficVolume_WebMercator; layer ids are not in year order. Native 3857 — query with outSR=26985. Wards 1+4: 1,601 events, AADT 134–36,611, median 7,090 (mostly arterials/collectors; local streets usually absent → impute).",
+  },
+  {
+    id: "lrs_functional_class",
+    name: "DDOT LRS — Functional Class",
+    url: `${DDOT}/DDOTLRS/MapServer/11`,
+    crs: "EPSG:26985",
+    count: 5865,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      FUNCTIONALCLASS:
+        "FHWA: 1=Interstate 2=Principal Arterial–Other Freeways/Expressways 3=Principal Arterial–Other 4=Minor Arterial 5=Major Collector 6=Minor Collector 7=Local",
+      DCFUNCTIONALCLASS: "DC codes 11/12/14/16/17/18/19 (same classes)",
+      TODATE: "null = current",
+    },
+    verifiedOn: "2026-11-25",
+    notes: "Wards 1+4 current events: class 3: 51, 4: 117, 5: 131, 6: 7, 7: 786. Used to impute AADT where no count exists.",
   },
 ];
 

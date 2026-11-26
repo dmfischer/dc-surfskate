@@ -57,14 +57,16 @@ body,
 }
 
 .toggle {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
 }
 
 .toggle button {
-  flex: 1;
   border: 0;
   background: var(--bg);
   padding: 6px 4px;
@@ -72,10 +74,6 @@ body,
   font-size: 12px;
   cursor: pointer;
   color: var(--fg);
-}
-
-.toggle button + button {
-  border-left: 1px solid var(--border);
 }
 
 .toggle button.on {
@@ -167,4 +165,8 @@ body,
   font-size: 10px;
   color: var(--muted);
   word-break: break-all;
+}
+
+.toggle button:last-child:nth-child(3n + 2) {
+  grid-column: span 2;
 }

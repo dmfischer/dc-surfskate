@@ -27,13 +27,14 @@ function applyMode(map: MlMap, mode: Mode) {
   map.setFilter(MAIN, s.filter);
   map.setPaintProperty(MAIN, "line-color", s.color);
   map.setPaintProperty(MAIN, "line-width", s.width);
+  map.setPaintProperty(MAIN, "line-opacity", s.opacity);
   map.setFilter(MISSING, s.missingFilter);
 }
 
 export function App() {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
-  const [mode, setMode] = useState<Mode>("pci");
+  const [mode, setMode] = useState<Mode>("score");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ area?: string; count: number } | null>(null);
@@ -59,7 +60,7 @@ export function App() {
         setMeta({ area: fc.metadata?.area, count: fc.features.length });
 
         map.addSource(SOURCE, { type: "geojson", data: fc });
-        const initial = modeStyle("pci");
+        const initial = modeStyle("score");
         map.addLayer({
           id: MISSING,
           type: "line",
@@ -74,7 +75,7 @@ export function App() {
           source: SOURCE,
           filter: initial.filter,
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": initial.color, "line-width": initial.width },
+          paint: { "line-color": initial.color, "line-width": initial.width, "line-opacity": initial.opacity },
         });
         map.fitBounds(bounds(fc), { padding: 40, duration: 0 });
 
@@ -132,6 +133,7 @@ export function App() {
               {it.label}
             </div>
           ))}
+          {lg.note && <div className="muted small">{lg.note}</div>}
         </div>
         {meta && <div className="muted small">{meta.count} street segments. Click one for details.</div>}
         {error && <div className="error">{error}</div>}

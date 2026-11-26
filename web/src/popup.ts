@@ -20,6 +20,20 @@ export interface SegmentProps {
   elev_start_m: number | null;
   elev_end_m: number | null;
   grade_flag: string | null;
+  functional_class: string | null;
+  aadt: number | null;
+  aadt_imputed: boolean | null;
+  score_ab: number | null;
+  score_ba: number | null;
+  score_best: number | null;
+  score_best_direction: "AB" | "BA" | null;
+  score_surface: number | null;
+  score_grade: number | null;
+  score_traffic: number | null;
+  score_run_quality: number | null;
+  score_confidence: number | null;
+  filter_reasons: string | null;
+  filtered: boolean;
 }
 
 const fmt = (v: number | null, digits = 1, unit = "") => (v == null ? "—" : `${v.toFixed(digits)}${unit}`);
@@ -32,6 +46,23 @@ export function describeGrade(p: SegmentProps): string {
   const toward = g > 0 ? p.to_street : p.from_street;
   return `${Math.abs(g).toFixed(1)}% ↓ downhill toward ${toward ?? "the other end"}`;
 }
+
+function describeTraffic(p: SegmentProps): string {
+  if (p.aadt == null) return "—";
+  const n = p.aadt.toLocaleString("en-US");
+  const cls = p.functional_class?.replace(/_/g, " ");
+  return p.aadt_imputed ? `~${n}/day (estimated${cls ? `, ${cls}` : ""})` : `${n}/day (2025 count)`;
+}
+
+/** Best direction in words: "0.82 heading toward Belmont Rd NW". */
+function describeScore(p: SegmentProps): string {
+  if (p.filtered) return `Filtered: ${p.filter_reasons ?? "?"}`;
+  if (p.score_best == null) return "—";
+  const toward = p.score_best_direction === "AB" ? p.to_street : p.from_street;
+  return `${p.score_best.toFixed(2)} heading toward ${toward ?? "?"}`;
+}
+
+const s2 = (v: number | null) => (v == null ? "—" : v.toFixed(2));
 
 function describeOneway(p: SegmentProps): string {
   if (p.oneway == null) return "Unknown";
@@ -62,7 +93,16 @@ export function popupContent(p: SegmentProps): HTMLElement {
     root.append(warn);
   }
 
+  const both = p.score_ab != null && p.score_ba != null;
   const rows: [string, string][] = [
+    ["Score", describeScore(p)],
+    ...(p.score_best != null && !p.filtered
+      ? ([
+          ["  components", `surface ${s2(p.score_surface)} · grade ${s2(p.score_grade)} · traffic ${s2(p.score_traffic)} · run ${s2(p.score_run_quality)}`],
+          ["  confidence", `${Math.round((p.score_confidence ?? 0) * 100)}% of weight backed by data`],
+          ...(both ? ([["  each way", `→ ${p.to_street ?? "B"} ${s2(p.score_ab)} · → ${p.from_street ?? "A"} ${s2(p.score_ba)}`]] as [string, string][]) : []),
+        ] as [string, string][])
+      : []),
     ["PCI", p.pci == null ? "No FY-25 data" : `${p.pci.toFixed(0)}${p.pci_date ? ` (inspected ${p.pci_date})` : ""}`],
     ["Surface", p.pci_surface ?? "—"],
     ["Grade", describeGrade(p)],
@@ -70,7 +110,8 @@ export function popupContent(p: SegmentProps): HTMLElement {
     ["Roughness (std)", fmt(p.grade_std_pct, 2, "%")],
     ["Elevation", `${fmt(p.elev_start_m, 1, " m")} → ${fmt(p.elev_end_m, 1, " m")}`],
     ["Length", fmt(p.length_m, 0, " m")],
-    ["Traffic", describeOneway(p)],
+    ["Volume", describeTraffic(p)],
+    ["Direction", describeOneway(p)],
   ];
   const dl = document.createElement("dl");
   for (const [k, v] of rows) {

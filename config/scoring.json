@@ -1,10 +1,21 @@
 {
   "_note": "Starting guesses from README 'Scoring model'. Tune against /labels. Grade is percent, + = downhill in direction of travel.",
   "hardFilters": {
-    "excludedFunctionalClasses": ["interstate", "freeway", "expressway", "ramp"],
+    "excludedFunctionalClasses": [
+      "interstate",
+      "freeway"
+    ],
     "maxDownhillGradePct": 8,
     "maxAadt": 15000,
-    "excludedSurfaces": ["brick", "cobble", "unpaved"]
+    "excludedSurfaces": [
+      "brick",
+      "cobble",
+      "unpaved"
+    ],
+    "excludedRoadTypes": [
+      3
+    ],
+    "_note": "excludedRoadTypes are DDOT ROADTYPE codes (3 = ramp). maxAadt applies to measured or imputed AADT."
   },
   "staticWeights": {
     "surface": 0.35,
@@ -13,21 +24,60 @@
     "runQuality": 0.15
   },
   "surface": {
-    "freshness": { "fullScoreMonths": 6, "zeroScoreMonths": 36 },
-    "materialFactor": { "asphalt": 1.0, "concrete": 0.6 },
-    "potholePenaltyPerOpenRequest": 0.1
+    "freshness": {
+      "fullScoreMonths": 6,
+      "zeroScoreMonths": 36
+    },
+    "materialFactor": {
+      "asphalt": 1,
+      "concrete": 0.6,
+      "other": 0.5
+    },
+    "potholePenaltyPerOpenRequest": 0.1,
+    "condition": {
+      "pciZeroScore": 40,
+      "pciFullScore": 95
+    },
+    "_note": "No paving-date data yet, so freshness is not scored; surface = condition x materialFactor. Null PCI drops surface from the average."
   },
   "grade": {
     "curve": [
-      { "pct": -3, "score": 0.2 },
-      { "pct": 0, "score": 0.6 },
-      { "pct": 1, "score": 0.6 },
-      { "pct": 1, "score": 1.0 },
-      { "pct": 4, "score": 1.0 },
-      { "pct": 4, "score": 0.6 },
-      { "pct": 6, "score": 0.6 },
-      { "pct": 6, "score": 0.2 },
-      { "pct": 8, "score": 0.2 }
+      {
+        "pct": -3,
+        "score": 0.2
+      },
+      {
+        "pct": 0,
+        "score": 0.6
+      },
+      {
+        "pct": 1,
+        "score": 0.6
+      },
+      {
+        "pct": 1,
+        "score": 1
+      },
+      {
+        "pct": 4,
+        "score": 1
+      },
+      {
+        "pct": 4,
+        "score": 0.6
+      },
+      {
+        "pct": 6,
+        "score": 0.6
+      },
+      {
+        "pct": 6,
+        "score": 0.2
+      },
+      {
+        "pct": 8,
+        "score": 0.2
+      }
     ],
     "stdPenaltyPerPct": 0.1,
     "steepLast20mThresholdPct": 6,
@@ -43,19 +93,44 @@
       "principal_arterial": 15000
     },
     "bikeLaneBonus": 0.1,
-    "speedLimit20Bonus": 0.1
+    "speedLimit20Bonus": 0.1,
+    "_note": "Log decay from aadtFullScore (1.0) to aadtZeroScore (0). Imputed when 2025 AADT is missing. Bonuses need bike-lane / speed data (not joined yet)."
   },
   "runQuality": {
     "lengthCapM": 400,
-    "weights": { "length": 0.5, "bottomControl": 0.3, "crashes": 0.2 },
-    "bottomControlScore": { "stop": 1.0, "signal": 0.8, "none": 0.3 },
+    "weights": {
+      "length": 0.5,
+      "bottomControl": 0.3,
+      "crashes": 0.2
+    },
+    "bottomControlScore": {
+      "stop": 1,
+      "signal": 0.8,
+      "none": 0.3
+    },
     "crashPenaltyPerCrash3yr": 0.1
   },
   "conditions": {
-    "wetness": { "recentPrecipMm6h": 2 },
-    "temperatureF": { "idealMin": 50, "idealMax": 85, "zeroAt": 35 },
-    "wind": { "penaltyAboveMph": 15 },
-    "daylight": { "afterDarkFactor": 0.3 },
-    "leafSeason": { "months": [10, 11], "factor": 0.9 }
+    "wetness": {
+      "recentPrecipMm6h": 2
+    },
+    "temperatureF": {
+      "idealMin": 50,
+      "idealMax": 85,
+      "zeroAt": 35
+    },
+    "wind": {
+      "penaltyAboveMph": 15
+    },
+    "daylight": {
+      "afterDarkFactor": 0.3
+    },
+    "leafSeason": {
+      "months": [
+        10,
+        11
+      ],
+      "factor": 0.9
+    }
   }
 }

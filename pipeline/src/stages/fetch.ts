@@ -31,6 +31,8 @@ const JOBS: FetchJob[] = [
   { sourceId: "pci_fy25", file: "pci_fy25.geojson" },
   // Only current events; TODATE is null for every row today, but keep the filter in case history appears.
   { sourceId: "roadway_segments", file: "roadway_segments.geojson", params: { where: "TODATE IS NULL" } },
+  { sourceId: "traffic_volume_2025", file: "traffic_2025.geojson", params: { where: "TODATE IS NULL", returnM: false } },
+  { sourceId: "lrs_functional_class", file: "functional_class.geojson", params: { where: "TODATE IS NULL" } },
 ];
 
 /** Fail loudly if the live layer no longer has the fields recorded in sources.ts. */

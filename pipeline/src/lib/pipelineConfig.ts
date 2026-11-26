@@ -39,6 +39,8 @@ export interface PipelineConfig {
   join: {
     /** Minimum fraction (0–1) of a block's length covered by PCI sections before PCI is reported. */
     minPciCoverage: number;
+    /** Minimum fraction (0–1) of a block's length covered by 2025 AADT events before AADT is reported. */
+    minAadtCoverage: number;
   };
   export: {
     /** Decimal places for output lon/lat (6 ≈ 0.1 m). */
@@ -47,6 +49,8 @@ export interface PipelineConfig {
     pciBucketEdges: number[];
     /** Ascending edges for summary |grade_mean| buckets (%). */
     absGradeBucketEdges: number[];
+    /** Ascending edges for summary best-direction static score buckets (0–1). */
+    scoreBucketEdges: number[];
   };
 }
 

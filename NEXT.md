@@ -28,9 +28,21 @@ DDOT blocks joined with **PCI FY-25** and **along-street grade from the 2024 1 m
   Result: 3,076 segments (Ward 1: 772, Ward 4: 2,179, outside: 125), 399 km; PCI on 1,202; 18 bridge + 1 tunnel flagged.
   DTM: 20 tiles; the NE corner tile is all nodata (Maryland, outside DC LiDAR) and is kept with a warning, not an error.
   DDOT returns 3 duplicate blocks across the two wards (dropped in export).
+- `feat/traffic-score`: 2025 AADT (`traffic_volume_2025`, DCGIS TrafficVolume layer 6) and functional class
+  (`lrs_functional_class`) joined onto blocks; first real `score` stage. `scoring/components.ts` (pure, tested): surface
+  (PCI rescaled 40→95 × material), grade (curve + roughness / steep-finish penalties), traffic (log decay 1k→15k, imputed
+  by functional class when no count), run quality (length only). `scoring/scoreSegment.ts` applies hard filters, expands
+  legal directions, and computes static score + `confidence` (share of weight backed by data). Outputs
+  `data/intermediate/scored.json` and `data/output/filtered.json`; export adds per-block `score_ab/ba/best`, components, AADT.
+  Viewer: new Score (default) and Traffic modes; faded lines = confidence < 1.
+  Wards 1+4: 5,749 directed segments, 5,062 scored, 687 filtered (AADT > 15k: 619, downhill > 8%: 66, no elevation: 2).
+  AADT measured on 1,198 blocks, imputed on 1,878. Static score p10 0.45 / p50 0.59 / p90 0.80.
 
 ## Next
 
+- **Tuning:** top-ranked segments are quiet local streets with no PCI and imputed AADT (surface drops out, traffic = 1.0).
+  Decide whether missing PCI should cap the score or require a minimum confidence; label 15–20 known blocks in `/labels`.
+- `types.ts` `ScoredSegment` is still the target shape; the score stage emits the leaner `DirectedScore` for now.
 - DSM bridge correction; dedupe the duplicate block in `join`; null-PCI policy for scoring; Adams Mill Rd jump check.
 
 ## Open questions

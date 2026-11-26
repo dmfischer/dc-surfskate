@@ -2,11 +2,12 @@
  * Export stage: combine blocks (PCI + directionality) with grades into one
  * WGS84 GeoJSON for the map, plus a summary of distributions.
  *
- * Input:  data/intermediate/blocks.geojson (EPSG:26985), data/intermediate/grades.json
+ * Input:  data/intermediate/blocks.geojson (EPSG:26985), data/intermediate/grades.json,
+ *         data/intermediate/scored.json (directed scores)
  * Output: data/output/segments.geojson (EPSG:4326), data/output/summary.json
  *
- * Segments are undirected here (grade signed in digitized A→B order, + = downhill).
- * Directed AB/BA records come later, in the score stage.
+ * One feature per block (grade signed in digitized A→B order, + = downhill), carrying
+ * the static score of each legal direction plus the best direction for the map.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -18,6 +19,8 @@ import { wardAt, type Area } from "../lib/area.js";
 import { loadPipelineConfig } from "../lib/pipelineConfig.js";
 import { AREA_FILE } from "./fetch.js";
 import { BLOCKS_FILE, GRADES_FILE, type BlockGrade } from "./grade.js";
+import { SCORED_FILE } from "./score.js";
+import type { DirectedScore } from "../scoring/scoreSegment.js";
 
 export const SEGMENTS_FILE = path.join(OUTPUT_DIR, "segments.geojson");
 export const SUMMARY_FILE = path.join(OUTPUT_DIR, "summary.json");
@@ -62,13 +65,18 @@ export function midpoint(coords: readonly (readonly number[])[]): number[] {
 const countBy = (keys: string[]) => keys.reduce<Record<string, number>>((m, k) => ((m[k] = (m[k] ?? 0) + 1), m), {});
 
 export async function run(): Promise<void> {
-  for (const f of [BLOCKS_FILE, GRADES_FILE, AREA_FILE]) {
-    if (!existsSync(f)) throw new Error(`[export] missing ${f}; run fetch, join and grade first`);
+  for (const f of [BLOCKS_FILE, GRADES_FILE, AREA_FILE, SCORED_FILE]) {
+    if (!existsSync(f)) throw new Error(`[export] missing ${f}; run fetch, join, grade and score first`);
   }
   const cfg = loadPipelineConfig().export;
   const area = JSON.parse(readFileSync(AREA_FILE, "utf8")) as Area;
   const blocks = JSON.parse(readFileSync(BLOCKS_FILE, "utf8")) as FeatureCollection<LineString>;
   const grades = JSON.parse(readFileSync(GRADES_FILE, "utf8")) as Record<string, BlockGrade>;
+
+  const scored = new Map<string, DirectedScore[]>();
+  for (const d of JSON.parse(readFileSync(SCORED_FILE, "utf8")) as DirectedScore[]) {
+    scored.set(d.block_id, [...(scored.get(d.block_id) ?? []), d]);
+  }
 
   const seen = new Set<string>();
   const features: Feature<LineString>[] = [];
@@ -83,6 +91,11 @@ export async function run(): Promise<void> {
     }
     seen.add(id);
     const g = grades[id];
+    const dirs = scored.get(id) ?? [];
+    const byDir = (d: "AB" | "BA") => dirs.find((x) => x.direction === d);
+    const kept = dirs.filter((x) => x.scores.static != null);
+    const best = kept.length ? kept.reduce((a, b) => (b.scores.static! > a.scores.static! ? b : a)) : null;
+    const traffic = dirs[0];
     const ward = wardAt(midpoint(b.geometry.coordinates), area.wards);
     features.push({
       type: "Feature",
@@ -112,6 +125,21 @@ export async function run(): Promise<void> {
         elev_coverage: round(g?.elev_coverage),
         grade_flag: g ? g.grade_flag : "no_grade",
         grade_source: g?.grade_source ?? null,
+        functional_class: p.functional_class ?? null,
+        aadt: traffic?.aadt ?? null,
+        aadt_imputed: traffic?.aadt_imputed ?? null,
+        aadt_year: p.aadt_year ?? null,
+        score_ab: round(byDir("AB")?.scores.static, 3),
+        score_ba: round(byDir("BA")?.scores.static, 3),
+        score_best: round(best?.scores.static, 3),
+        score_best_direction: best?.direction ?? null,
+        score_surface: round(best?.scores.surface, 3),
+        score_grade: round(best?.scores.grade, 3),
+        score_traffic: round(best?.scores.traffic, 3),
+        score_run_quality: round(best?.scores.runQuality, 3),
+        score_confidence: round(best?.confidence, 2),
+        filter_reasons: [...new Set(dirs.flatMap((x) => x.filter_reasons))].join(", ") || null,
+        filtered: dirs.length > 0 && kept.length === 0,
       },
     });
   }
@@ -145,6 +173,9 @@ export async function run(): Promise<void> {
       cfg.absGradeBucketEdges,
     ),
     gradeFlags: flags,
+    scoreBuckets: bucketize(props.map((p) => p.score_best), cfg.scoreBucketEdges),
+    filteredSegments: props.filter((p) => p.filtered).length,
+    aadt: countBy(props.map((p) => (p.aadt == null ? "missing" : p.aadt_imputed ? "imputed" : "measured"))),
     byWard: countBy(props.map((p) => (p.ward == null ? "outside" : String(p.ward)))),
   };
   writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2));
