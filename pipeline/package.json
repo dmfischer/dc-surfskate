@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "fetch": "tsx src/stages/fetch.ts",
+    "fetch:dtm": "tsx src/stages/fetchDtm.ts",
     "join": "tsx src/stages/join.ts",
     "grade": "tsx src/stages/grade.ts",
     "score": "tsx src/stages/score.ts",
