@@ -130,7 +130,10 @@ export async function verifyTile(file: string, tile: DtmTileEntry): Promise<Tile
     if (v > max) max = v;
   }
   const total = raster.data.length;
-  if (nodataCount === total) fail("every pixel is nodata");
+  // The DC DTM is clipped to the District boundary, so a tile from the bbox corner can fall
+  // entirely outside DC (e.g. Maryland past Ward 4's northern tip). Keep it; samples there
+  // read as nodata and blocks are flagged insufficient_elevation (rule 8).
+  if (nodataCount === total) return { ...check, min: NaN, max: NaN, nodataCount, total };
   if (min < dtm.plausibleMinM || max > dtm.plausibleMaxM) fail(`elevation range ${min.toFixed(2)}–${max.toFixed(2)} m outside plausible ${dtm.plausibleMinM}–${dtm.plausibleMaxM} m`);
   return { ...check, min, max, nodataCount, total };
 }
@@ -208,6 +211,10 @@ export async function run(opts: { refresh?: boolean } = {}): Promise<void> {
       await new Promise((r) => setTimeout(r, cfg.arcgis.requestDelayMs));
     }
     const c = await verifyTile(file, t);
+    if (c.nodataCount === c.total) {
+      console.warn(`[fetch:dtm] ${i + 1}/${tiles.length} ${t.file}: all nodata (outside DC LiDAR coverage); kept, contributes no elevation`);
+      continue;
+    }
     console.log(
       `[fetch:dtm] ${i + 1}/${tiles.length} ${t.file} ${cached ? "(cached)" : "(downloaded)"} ` +
         `EPSG:${c.epsg} ${c.pixelSizeX}×${c.pixelSizeY} m, z ${c.min.toFixed(2)}–${c.max.toFixed(2)} m, ` +

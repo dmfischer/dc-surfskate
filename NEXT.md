@@ -4,7 +4,7 @@ Session handoff notes. Update at the end of every branch.
 
 ## Current focus
 
-First pass of the data layers that feed scoring, for one ward (`config/area.json`, Ward 1):
+First pass of the data layers that feed scoring, for **Wards 1 and 4** (`config/area.json`):
 DDOT blocks joined with **PCI FY-25** and **along-street grade from the 2024 1 m DTM**, exported for a map viewer.
 
 ## Done
@@ -22,6 +22,12 @@ DDOT blocks joined with **PCI FY-25** and **along-street grade from the 2024 1 m
   Basemap: OpenFreeMap Positron (no API key). Bridge / unreliable grades render dashed gray.
   Gotchas: MapLibre 6 loads `maplibre-gl-worker.mjs` relative to its module, so `optimizeDeps.exclude: ["maplibre-gl"]`
   is required; and it has no default export (use named imports). `window.__map` is exposed in dev for debugging.
+- `feat/ward-4`: `config/area.json` takes `wards: [1, 4]`. Raw downloads record an `areaKey` and re-fetch when the
+  configured wards change; fetch writes ward polygons to `data/raw/area.json`; export tags each segment with the ward
+  containing its midpoint (`ward`, null when it lies just outside, e.g. a border block whose midpoint is in Ward 2).
+  Result: 3,076 segments (Ward 1: 772, Ward 4: 2,179, outside: 125), 399 km; PCI on 1,202; 18 bridge + 1 tunnel flagged.
+  DTM: 20 tiles; the NE corner tile is all nodata (Maryland, outside DC LiDAR) and is kept with a warning, not an error.
+  DDOT returns 3 duplicate blocks across the two wards (dropped in export).
 
 ## Next
 

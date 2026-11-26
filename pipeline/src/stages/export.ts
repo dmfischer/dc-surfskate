@@ -14,7 +14,9 @@ import { pathToFileURL } from "node:url";
 import type { Feature, FeatureCollection, LineString } from "geojson";
 import { md26985ToLonLat } from "../lib/crs.js";
 import { OUTPUT_DIR } from "../lib/paths.js";
-import { loadAreaConfig, loadPipelineConfig } from "../lib/pipelineConfig.js";
+import { wardAt, type Area } from "../lib/area.js";
+import { loadPipelineConfig } from "../lib/pipelineConfig.js";
+import { AREA_FILE } from "./fetch.js";
 import { BLOCKS_FILE, GRADES_FILE, type BlockGrade } from "./grade.js";
 
 export const SEGMENTS_FILE = path.join(OUTPUT_DIR, "segments.geojson");
@@ -42,12 +44,29 @@ export function bucketize(values: ReadonlyArray<number | null>, edges: readonly 
   return out;
 }
 
+/** Point halfway along a planar LineString (EPSG:26985 coordinates). */
+export function midpoint(coords: readonly (readonly number[])[]): number[] {
+  const seg = coords.slice(1).map((c, i) => Math.hypot(c[0]! - coords[i]![0]!, c[1]! - coords[i]![1]!));
+  let half = seg.reduce((a, b) => a + b, 0) / 2;
+  for (const [i, len] of seg.entries()) {
+    if (half <= len && len > 0) {
+      const [a, b] = [coords[i]!, coords[i + 1]!];
+      const t = half / len;
+      return [a[0]! + t * (b[0]! - a[0]!), a[1]! + t * (b[1]! - a[1]!)];
+    }
+    half -= len;
+  }
+  return [...coords[coords.length - 1]!];
+}
+
+const countBy = (keys: string[]) => keys.reduce<Record<string, number>>((m, k) => ((m[k] = (m[k] ?? 0) + 1), m), {});
+
 export async function run(): Promise<void> {
-  for (const f of [BLOCKS_FILE, GRADES_FILE]) {
-    if (!existsSync(f)) throw new Error(`[export] missing ${f}; run join and grade first`);
+  for (const f of [BLOCKS_FILE, GRADES_FILE, AREA_FILE]) {
+    if (!existsSync(f)) throw new Error(`[export] missing ${f}; run fetch, join and grade first`);
   }
   const cfg = loadPipelineConfig().export;
-  const area = loadAreaConfig();
+  const area = JSON.parse(readFileSync(AREA_FILE, "utf8")) as Area;
   const blocks = JSON.parse(readFileSync(BLOCKS_FILE, "utf8")) as FeatureCollection<LineString>;
   const grades = JSON.parse(readFileSync(GRADES_FILE, "utf8")) as Record<string, BlockGrade>;
 
@@ -64,11 +83,13 @@ export async function run(): Promise<void> {
     }
     seen.add(id);
     const g = grades[id];
+    const ward = wardAt(midpoint(b.geometry.coordinates), area.wards);
     features.push({
       type: "Feature",
       geometry: { type: "LineString", coordinates: b.geometry.coordinates.map((c) => md26985ToLonLat(c, cfg.coordDecimals)) },
       properties: {
         segment_id: id,
+        ward,
         route_name: p.RouteName ?? null,
         from_street: p.FromStreet ?? null,
         to_street: p.ToStreet ?? null,
@@ -100,7 +121,7 @@ export async function run(): Promise<void> {
     type: "FeatureCollection" as const,
     metadata: {
       area: area.name,
-      ward: area.ward,
+      wards: area.wards.map((w) => w.ward),
       crs: "EPSG:4326",
       pciYear: 2025,
       dtm: "DC OCTO 2024 Hydro-Enforced DTM (1 m)",
@@ -124,6 +145,7 @@ export async function run(): Promise<void> {
       cfg.absGradeBucketEdges,
     ),
     gradeFlags: flags,
+    byWard: countBy(props.map((p) => (p.ward == null ? "outside" : String(p.ward)))),
   };
   writeFileSync(SUMMARY_FILE, JSON.stringify(summary, null, 2));
   console.log(`[export] ${features.length} segments (${duplicates} duplicate dropped) → ${SEGMENTS_FILE}`);

@@ -52,7 +52,8 @@ export interface PipelineConfig {
 
 export interface AreaConfig {
   name: string;
-  ward: number;
+  /** Ward numbers (2022 boundaries) processed together. */
+  wards: number[];
   bufferM: number;
 }
 
