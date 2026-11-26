@@ -11,9 +11,14 @@
   },
   "dtm": {
     "exportTilePx": 2000,
+    "tileMarginM": 300,
     "pixelSizeM": 1,
     "nodataValue": -9999,
-    "nodataBelowM": -50
+    "nodataBelowM": -50,
+    "pixelSizeToleranceM": 0.001,
+    "plausibleMinM": -15,
+    "plausibleMaxM": 140,
+    "requestRetries": 3
   },
   "grade": {
     "sampleSpacingM": 5,
@@ -21,10 +26,39 @@
     "localGradeWindowM": 10,
     "medianWindow": 3,
     "minCoverage": 0.8,
-    "maxGapM": 15
+    "maxGapM": 15,
+    "structureMinOverlapM": 2
   },
   "join": {
-    "_note": "PCI fields are null (never 0) when PCI sections cover less than minPciCoverage (0-1) of a block's length.",
-    "minPciCoverage": 0.5
+    "_note": "PCI / AADT fields are null (never 0) when their source events cover less than the min coverage (0-1) of a block length.",
+    "minPciCoverage": 0.5,
+    "minAadtCoverage": 0.5
+  },
+  "export": {
+    "_note": "Output formatting and summary buckets. Buckets are half-open [a, b); out-of-range values clamp to the end buckets.",
+    "coordDecimals": 6,
+    "pciBucketEdges": [
+      0,
+      40,
+      70,
+      85,
+      100
+    ],
+    "absGradeBucketEdges": [
+      0,
+      1,
+      4,
+      6,
+      8,
+      100
+    ],
+    "scoreBucketEdges": [
+      0,
+      0.4,
+      0.55,
+      0.7,
+      0.85,
+      1
+    ]
   }
 }

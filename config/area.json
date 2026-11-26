@@ -1,6 +1,6 @@
 {
-  "_note": "Area the pipeline processes. Boundary comes from the ward_2022 source in pipeline/src/sources.ts.",
-  "name": "Ward 1",
-  "ward": 1,
+  "_note": "Area the pipeline processes: one or more DC wards (2022 boundaries, source ward_2022 in pipeline/src/sources.ts). Changing this invalidates cached raw downloads automatically.",
+  "name": "Wards 1 and 4",
+  "wards": [1, 4],
   "bufferM": 50
 }

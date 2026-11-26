@@ -64,11 +64,15 @@ All numbers below are **starting guesses** to be tuned against hand-labeled segm
 
 ### Hard filters (segment excluded entirely)
 
-- Freeways, ramps, limited-access roads
+- Freeways and limited-access roads (functional class 1–2) and ramps (DDOT ROADTYPE 3)
 - Directional grade steeper than **8% downhill**
-- AADT above **15,000**
+- AADT above **15,000** (measured or imputed)
 - Brick, cobble, or unpaved surface
-- No elevation data (LiDAR redaction zones in the federal core)
+- No usable elevation (insufficient LiDAR coverage, tunnels)
+
+Bridges are not filtered. Their grade is unreliable (the terrain model reads the valley below), so the grade component drops out for them.
+
+Filtered segments and their reasons are written to `data/output/filtered.json`.
 
 ### Static score
 
@@ -77,10 +81,10 @@ staticScore = 0.35 * surface + 0.25 * grade + 0.25 * traffic + 0.15 * runQuality
 ```
 
 **Surface (0.35)**
-- `freshness`: 1.0 if paved < 6 months ago, decaying to 0 at ~3 years
-- `condition`: DDOT pavement condition rating normalized to 0–1
-- `surface = max(freshness, condition) × materialFactor` (asphalt 1.0, concrete 0.6)
-- Penalty for open 311 pothole requests on the segment
+- `condition`: DDOT PCI (FY-25) rescaled linearly, 0 at PCI 40 → 1 at PCI 95
+- `surface = condition × materialFactor` (asphalt 1.0, concrete 0.6, other 0.5)
+- Planned: `freshness` (1.0 if paved < 6 months ago, decaying to 0 at ~3 years) once a paving-date source is joined; then `surface = max(freshness, condition) × materialFactor`
+- Planned: penalty for open 311 pothole requests on the segment
 
 **Grade (0.25)**, for downhill grade in the direction of travel
 
@@ -95,15 +99,16 @@ staticScore = 0.35 * surface + 0.25 * grade + 0.25 * traffic + 0.15 * runQuality
 Penalties: high grade variance along the segment (dips/kickers), and a steep last 20 m ("hot into the intersection").
 
 **Traffic (0.25)**
-- Log decay on AADT: 1.0 at < 1,000 → 0 at 15,000
-- Missing AADT is imputed from functional class (e.g. local ≈ 800, collector ≈ 5,000) and flagged `aadt_imputed`
-- Bonuses: bike lane, 20 mph limit
+- 2025 AADT, length-weighted over the block (reported when counts cover ≥ 50% of it)
+- Log decay on AADT: 1.0 at ≤ 1,000 → 0 at 15,000 (geometric midpoint ≈ 3,900 scores 0.5)
+- Missing AADT is imputed from functional class (local 800, collector 5,000, minor arterial 10,000, principal arterial 15,000) and flagged `aadt_imputed`
+- Planned bonuses: bike lane, 20 mph limit (data not joined yet)
 
 **Run quality (0.15)**
 - Segment length (longer is better, capped ~400 m)
-- Controlled stop at the bottom of a downhill (positive)
-- Crash history (penalty)
-- Width / parking lanes, if available
+- Planned: controlled stop at the bottom of a downhill (positive), crash history (penalty), width / parking lanes
+
+**Missing data.** A component with no data (e.g. no PCI) drops out and the remaining weights are renormalized; it never scores 0. Each segment carries `confidence`, the share of the static weight backed by data, so a score built from fewer components is visibly less certain.
 
 ### Conditions multiplier (live, 0–1, product of factors)
 
@@ -129,7 +134,7 @@ Most DDOT data is served from one ArcGIS server, `https://rh.dcgis.dc.gov/dcgis/
 | Roughness (IRI) | DDOT `DDOTLRS/MapServer/39` | Surveys 2010–2020 (latest 2020-01); several years overlap, take the latest `IRI_DATE`. Covers about the same streets as PCI. Legacy `maps2 .../DDOT/Pavement/MapServer/3` is IRI 2014 only. |
 | Last improvement year | DDOT `DDOTLRS/MapServer/47` | HPMS network only, and gives the year only |
 | Surface type | DDOT `DDOTLRS/MapServer/44` | HPMS surface codes |
-| AADT (alternative) | DDOT `DDOTLRS/MapServer/24` | Count years 2014–2023 overlap; take the latest per interval |
+| AADT (older) | DDOT `DDOTLRS/MapServer/24` | Count years 2014–2023 overlap; superseded by the 2025 layer below |
 | Speed limit | DDOT `DDOTLRS/MapServer/18` | mph |
 | Stop signs / signals | DDOT `DDOTLRS/MapServer/35`, `/34`, `/30` | Counts per HPMS section, not controls at each endpoint, so weak for `bottom_control` |
 | Paving projects | DDOT Paving Plan / PaveDC (ArcGIS item `76784c82ddcb4fb798769138f27c0ed3`) | Open-data copy may lag; the live PaveDC map layer may be fresher. Paving season is spring–fall. |
@@ -137,13 +142,14 @@ Most DDOT data is served from one ArcGIS server, `https://rh.dcgis.dc.gov/dcgis/
 | Potholes | Open Data DC: 311 service requests | Snap to nearest segment |
 | Elevation / grade | DC OCTO 2024 Hydro-Enforced DTM ImageServer (`imagery.dcgis.dc.gov/.../Lidar/Hydro_Enforced_DTM_2024/ImageServer`) | 1 m, native EPSG:2804; export in 26985. Tiles and exportImage GeoTIFFs are public (no email request). Bridges read as valleys; see `docs/research/steepness.md`. |
 | Ward boundaries | DCGIS `Administrative_Other_Boundaries/MapServer/53` (Ward 2022) | Area filter, set in `config/area.json` |
-| Traffic volume | Open Data DC: 2024 Traffic Volume (AADT by roadway block) | Counts are on a 3-year cycle at HPMS locations; many local streets have no count |
+| Traffic volume | DCGIS `Transportation_TrafficVolume_WebMercator/MapServer/6` (2025) | Same ROUTEID + measure keys as blocks. One layer per year (2006–2025; ids not in year order; Open Data "2024 Traffic Volume" is layer 5). Most local streets have no count, so AADT is imputed from functional class. |
+| Functional class | DDOT `DDOTLRS/MapServer/11` | FHWA classes 1–7; used for the freeway filter and AADT imputation |
 | Bike lanes, crashes | Open Data DC | |
 | Intersection controls | **Unverified** | Hardest field; optional for v1 |
 | Weather | National Weather Service API (`api.weather.gov`) | Free, no key; requires an identifying `User-Agent` header |
 
 Useful endpoints:
-- 2024 Traffic Volume GeoJSON: `https://opendata.dc.gov/api/download/v1/items/948099175f3a44cca2d6a633cf3ec35a/geojson?layers=5`
+- Traffic volume by year: `https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Transportation_TrafficVolume_WebMercator/MapServer`
 - DC GIS ArcGIS REST root: `https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/`
 - NWS: `GET https://api.weather.gov/points/{lat},{lon}` → `forecastHourly` URL for that grid cell
 

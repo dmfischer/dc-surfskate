@@ -3,15 +3,18 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "pipeline"
+    "pipeline",
+    "web"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w pipeline",
+    "build": "npm run build -w pipeline && npm run build -w web",
     "typecheck": "npm run typecheck --workspaces",
-    "test": "npm test --workspaces"
+    "test": "npm test --workspaces --if-present",
+    "pipeline": "npm run build -w pipeline",
+    "web": "npm run dev -w web"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.14",

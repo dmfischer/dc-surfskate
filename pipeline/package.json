@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "fetch": "tsx src/stages/fetch.ts",
+    "fetch:dtm": "tsx src/stages/fetchDtm.ts",
     "join": "tsx src/stages/join.ts",
     "grade": "tsx src/stages/grade.ts",
+    "export": "tsx src/stages/export.ts",
     "score": "tsx src/stages/score.ts",
     "build": "tsx src/build.ts",
     "typecheck": "tsc -p .",

@@ -32,6 +32,7 @@ export interface DataSource {
 }
 
 const DDOT = "https://rh.dcgis.dc.gov/dcgis/rest/services/DDOT";
+const TRAFFIC = "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Transportation_TrafficVolume_WebMercator/MapServer";
 
 export const sources: DataSource[] = [
   {
@@ -242,9 +243,10 @@ export const sources: DataSource[] = [
     year: 2024,
     crs: "EPSG:2804",
     fields: {},
-    verifiedOn: "2026-11-24",
+    verifiedOn: "2026-11-25",
     notes:
-      "F32, NAVD88 m, 1 m. Native CRS EPSG:2804 (NAD83 HARN MD); request exportImage with imageSR=26985 so it aligns with DDOT data (a 26985 vs 2804 mix-up shifts ~0.9 m). maxImageWidth 15000, maxImageHeight 4100. Source tiles' nodata is -999999; exportImage uses the noData= you pass. getSamples silently truncates at 1000 points. See docs/research/steepness.md.",
+      "F32, NAVD88 m, 1 m. Native CRS EPSG:2804 (NAD83 HARN MD); request exportImage with imageSR=26985 so it aligns with DDOT data (a 26985 vs 2804 mix-up shifts ~0.9 m). maxImageWidth 15000, maxImageHeight 4100. Source tiles' nodata is -999999; exportImage uses the noData= you pass. getSamples silently truncates at 1000 points. See docs/research/steepness.md. " +
+      "Verified 2026-11-25 (fetchDtm.ts): exportImage f=image streams the GeoTIFF directly (f=json returns an href instead); output has ProjectedCSTypeGeoKey 26985, PixelIsArea, origin = requested bbox top-left, GDAL_NODATA = requested noData. A 2000×2000 F32 tile is ~16.8 MB uncompressed and takes ~3.5 s.",
   },
   {
     id: "dsm_2024",
@@ -262,24 +264,89 @@ export const sources: DataSource[] = [
     url: `${DDOT}/DDOTLRS/MapServer/128`,
     crs: "EPSG:26985",
     count: 273,
-    fields: { ROUTEID: "LRS route id", FROMMEASURE: "start (m)", TOMEASURE: "end (m)", BRKEY: "bridge key", BRIDGE_NAME: "name", BRIDGE_TYPE: "type", OWNERSHIP: "owner" },
-    verifiedOn: "2026-11-24",
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start (m)",
+      TOMEASURE: "end (m)",
+      FROMDATE: "event start date",
+      TODATE: "event end date; null = current",
+      BRKEY: "bridge key, e.g. '0030' (matches lrs_structure VALUETEXT)",
+      BRIDGE_NAME: "name; '-1' when unknown",
+      BRIDGE_TYPE: "coded: 'Bridge' | 'Pedestrian'",
+      OWNERSHIP: "coded owner: 1=DDOT 2=NPS 3=AOC ... (see layer domain)",
+    },
+    verifiedOn: "2026-11-25",
+    notes: "Polyline with M. Ward 1 (spatial filter): 8 rows, incl. Duke Ellington (11020022, 419.802–584.216) and Taft (11025152).",
   },
   {
     id: "lrs_structure",
     name: "DDOT LRS — Structure",
     url: `${DDOT}/DDOTLRS/MapServer/16`,
     crs: "EPSG:26985",
-    fields: { ROUTEID: "LRS route id", FROMMEASURE: "start (m)", TOMEASURE: "end (m)", STRUCTURE_TYPE: "1=bridge 2=tunnel 3=causeway" },
-    verifiedOn: "2026-11-24",
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start (m)",
+      TOMEASURE: "end (m)",
+      FROMDATE: "event start date",
+      TODATE: "event end date; null = current",
+      STRUCTURE_TYPE: "SmallInteger coded: 1=Entire Section is a Bridge 2=Tunnel 3=Causeway; null on some rows",
+      VALUETEXT: "bridge key (matches lrs_bridge BRKEY), often null",
+    },
+    verifiedOn: "2026-11-25",
+    notes: "Ward 1 (spatial filter): 4 rows with STRUCTURE_TYPE=1, 0 tunnels, 3 rows with null STRUCTURE_TYPE (ignored). Intervals differ from lrs_bridge by a few m.",
   },
   {
     id: "traffic_volume_2024",
     name: "2024 Traffic Volume (AADT by roadway block)",
-    url: "https://opendata.dc.gov/api/download/v1/items/948099175f3a44cca2d6a633cf3ec35a/geojson?layers=5",
+    url: `${TRAFFIC}/5`,
     year: 2024,
+    crs: "EPSG:3857",
+    count: 21942,
+    maxRecordCount: 2000,
     fields: {},
-    notes: "Not yet audited. Compare against lrs_aadt.",
+    verifiedOn: "2026-11-25",
+    notes:
+      "Open Data item 948099175f3a44cca2d6a633cf3ec35a points at this layer. Same schema as traffic_volume_2025; superseded by it. All rows AADT_YEAR 2024.",
+  },
+  {
+    id: "traffic_volume_2025",
+    name: "DCGIS Traffic Volume 2025 (AADT, LRS events)",
+    url: `${TRAFFIC}/6`,
+    year: 2025,
+    crs: "EPSG:3857",
+    maxRecordCount: 2000,
+    fields: {
+      ROUTEID: "LRS route id (same keys as DDOT blocks)",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      AADT: "annual average daily traffic (Integer)",
+      AADT_YEAR: "2025 for every row",
+      TODATE: "null for every row",
+    },
+    verifiedOn: "2026-11-25",
+    notes:
+      "One layer per year (2006–2025) in Transportation_TrafficVolume_WebMercator; layer ids are not in year order. Native 3857 — query with outSR=26985. Wards 1+4: 1,601 events, AADT 134–36,611, median 7,090 (mostly arterials/collectors; local streets usually absent → impute).",
+  },
+  {
+    id: "lrs_functional_class",
+    name: "DDOT LRS — Functional Class",
+    url: `${DDOT}/DDOTLRS/MapServer/11`,
+    crs: "EPSG:26985",
+    count: 5865,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      FUNCTIONALCLASS:
+        "FHWA: 1=Interstate 2=Principal Arterial–Other Freeways/Expressways 3=Principal Arterial–Other 4=Minor Arterial 5=Major Collector 6=Minor Collector 7=Local",
+      DCFUNCTIONALCLASS: "DC codes 11/12/14/16/17/18/19 (same classes)",
+      TODATE: "null = current",
+    },
+    verifiedOn: "2026-11-25",
+    notes: "Wards 1+4 current events: class 3: 51, 4: 117, 5: 131, 6: 7, 7: 786. Used to impute AADT where no count exists.",
   },
 ];
 

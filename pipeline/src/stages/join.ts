@@ -1,5 +1,5 @@
 /**
- * Join stage: attach PCI FY-25 and directionality onto DDOT blocks by
+ * Join stage: attach PCI FY-25, directionality, 2025 AADT and functional class onto DDOT blocks by
  * ROUTEID + measure overlap and write data/intermediate/blocks.geojson.
  *
  * Output contract (consumed by the grade stage):
@@ -30,6 +30,17 @@ import { INTERMEDIATE_DIR, RAW_DIR } from "../lib/paths.js";
 import { loadPipelineConfig } from "../lib/pipelineConfig.js";
 
 const PCI_YEAR = 2025;
+
+/** FHWA functional class code (lrs_functional_class FUNCTIONALCLASS) → name used in config/scoring.json. */
+export const FUNCTIONAL_CLASS_NAMES: Record<number, string> = {
+  1: "interstate",
+  2: "freeway",
+  3: "principal_arterial",
+  4: "minor_arterial",
+  5: "collector",
+  6: "collector",
+  7: "local",
+};
 
 type Props = Record<string, any>;
 type LineFeature = Feature<LineString | MultiLineString, Props>;
@@ -77,7 +88,7 @@ interface SegValue {
 }
 
 export async function run(): Promise<void> {
-  const { minPciCoverage } = loadPipelineConfig().join;
+  const { minPciCoverage, minAadtCoverage } = loadPipelineConfig().join;
 
   const blocks = readFeatures("blocks.geojson");
   const pci = indexByRoute<PciValue>(
@@ -101,6 +112,25 @@ export async function run(): Promise<void> {
     ),
   );
 
+  const traffic = indexByRoute<{ aadt: number | null; year: number | null }>(
+    readFeatures("traffic_2025.geojson")
+      .filter((f) => typeof f.properties.AADT === "number" && f.properties.AADT > 0)
+      .map((f) => ({
+        routeId: String(f.properties.ROUTEID),
+        from: f.properties.FROMMEASURE,
+        to: f.properties.TOMEASURE,
+        value: { aadt: f.properties.AADT, year: f.properties.AADT_YEAR ?? null },
+      })),
+  );
+  const fclass = indexByRoute<number | null>(
+    readFeatures("functional_class.geojson").map((f) => ({
+      routeId: String(f.properties.ROUTEID),
+      from: f.properties.FROMMEASURE,
+      to: f.properties.TOMEASURE,
+      value: typeof f.properties.FUNCTIONALCLASS === "number" ? f.properties.FUNCTIONALCLASS : null,
+    })),
+  );
+
   const out: Feature<LineString, Props>[] = [];
   let multiPart = 0;
   for (const b of blocks) {
@@ -116,6 +146,12 @@ export async function run(): Promise<void> {
 
     const so = overlapsOnRoute(target, segs);
     const directionality = majorityByLength(pluck(so, "directionality"));
+
+    const to = overlapsOnRoute(target, traffic);
+    const aadtCoverage = coverageFraction(target, to);
+    const hasAadt = aadtCoverage >= minAadtCoverage;
+    const aadt = hasAadt ? weightedMean(pluck(to, "aadt")) : null;
+    const fcCode = majorityByLength(overlapsOnRoute(target, fclass));
 
     out.push({
       type: "Feature",
@@ -144,6 +180,11 @@ export async function run(): Promise<void> {
         roadtype: majorityByLength(pluck(so, "roadtype")),
         segment_coverage: coverageFraction(target, so),
         ...onewayFromDirectionality(directionality),
+        aadt: aadt == null ? null : Math.round(aadt),
+        aadt_coverage: aadtCoverage,
+        aadt_year: hasAadt ? majorityByLength(pluck(to, "year")) : null,
+        functional_class_code: fcCode,
+        functional_class: fcCode == null ? null : (FUNCTIONAL_CLASS_NAMES[fcCode] ?? null),
       },
     });
   }
@@ -155,7 +196,7 @@ export async function run(): Promise<void> {
     JSON.stringify({
       type: "FeatureCollection",
       crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::26985" } },
-      metadata: { stage: "join", minPciCoverage, pciYear: PCI_YEAR, createdAt: new Date().toISOString() },
+      metadata: { stage: "join", minPciCoverage, minAadtCoverage, pciYear: PCI_YEAR, aadtYear: 2025, createdAt: new Date().toISOString() },
       features: out,
     }),
   );
@@ -198,6 +239,8 @@ function printSummary(fs: Feature<LineString, Props>[], file: string, multiPart:
   console.log(`[join] oneway: ${count("oneway")}`);
   console.log(`[join] roadtype: ${count("roadtype")}`);
   console.log(`[join] pci_surface: ${count("pci_surface")}`);
+  console.log(`[join] blocks with 2025 AADT: ${props.filter((p) => p.aadt != null).length} of ${props.length}`);
+  console.log(`[join] functional_class: ${count("functional_class")}`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
