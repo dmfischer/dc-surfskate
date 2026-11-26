@@ -40,6 +40,14 @@ export interface PipelineConfig {
     /** Minimum fraction (0–1) of a block's length covered by PCI sections before PCI is reported. */
     minPciCoverage: number;
   };
+  export: {
+    /** Decimal places for output lon/lat (6 ≈ 0.1 m). */
+    coordDecimals: number;
+    /** Ascending edges for summary PCI buckets. */
+    pciBucketEdges: number[];
+    /** Ascending edges for summary |grade_mean| buckets (%). */
+    absGradeBucketEdges: number[];
+  };
 }
 
 export interface AreaConfig {

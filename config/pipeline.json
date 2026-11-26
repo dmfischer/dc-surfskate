@@ -32,5 +32,11 @@
   "join": {
     "_note": "PCI fields are null (never 0) when PCI sections cover less than minPciCoverage (0-1) of a block's length.",
     "minPciCoverage": 0.5
+  },
+  "export": {
+    "_note": "Output formatting and summary buckets. Buckets are half-open [a, b); out-of-range values clamp to the end buckets.",
+    "coordDecimals": 6,
+    "pciBucketEdges": [0, 40, 70, 85, 100],
+    "absGradeBucketEdges": [0, 1, 4, 6, 8, 100]
   }
 }
