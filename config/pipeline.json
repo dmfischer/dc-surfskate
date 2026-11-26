@@ -1,0 +1,26 @@
+{
+  "_note": "Data-processing parameters (not scoring weights; those live in scoring.json).",
+  "crs": {
+    "work": "EPSG:26985",
+    "output": "EPSG:4326"
+  },
+  "arcgis": {
+    "userAgent": "dc-surfskate/0.1",
+    "pageSize": 1000,
+    "requestDelayMs": 200
+  },
+  "dtm": {
+    "exportTilePx": 2000,
+    "pixelSizeM": 1,
+    "nodataValue": -9999,
+    "nodataBelowM": -50
+  },
+  "grade": {
+    "sampleSpacingM": 5,
+    "endWindowM": 20,
+    "localGradeWindowM": 10,
+    "medianWindow": 3,
+    "minCoverage": 0.8,
+    "maxGapM": 15
+  }
+}
