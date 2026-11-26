@@ -188,6 +188,56 @@ export const sources: DataSource[] = [
     notes: "A per-section count on the HPMS network, not a control at each endpoint, so it is weak for bottom_control. Related layers: SignalType (34), NumberSignal (30).",
   },
   {
+    id: "ward_2022",
+    name: "DC Ward boundaries (2022)",
+    url: "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Administrative_Other_Boundaries/MapServer/53",
+    year: 2022,
+    crs: "EPSG:26985",
+    count: 8,
+    maxRecordCount: 1000,
+    fields: { WARD: "ward number 1–8 (SmallInteger)", NAME: "e.g. 'Ward 1'" },
+    verifiedOn: "2026-11-25",
+    notes: "Ward 1 extent (26985): x 395586–398947, y 138433–141150 (~3.4 × 2.7 km).",
+  },
+  {
+    id: "dtm_2024",
+    name: "DC OCTO 2024 LiDAR Hydro-Enforced DTM (1 m)",
+    url: "https://imagery.dcgis.dc.gov/dcgis/rest/services/Lidar/Hydro_Enforced_DTM_2024/ImageServer",
+    year: 2024,
+    crs: "EPSG:2804",
+    fields: {},
+    verifiedOn: "2026-11-24",
+    notes:
+      "F32, NAVD88 m, 1 m. Native CRS EPSG:2804 (NAD83 HARN MD); request exportImage with imageSR=26985 so it aligns with DDOT data (a 26985 vs 2804 mix-up shifts ~0.9 m). maxImageWidth 15000, maxImageHeight 4100. Source tiles' nodata is -999999; exportImage uses the noData= you pass. getSamples silently truncates at 1000 points. See docs/research/steepness.md.",
+  },
+  {
+    id: "dsm_2024",
+    name: "DC OCTO 2024 LiDAR DSM (1 m)",
+    url: "https://imagery.dcgis.dc.gov/dcgis/rest/services/Lidar/DSM_2024/ImageServer",
+    year: 2024,
+    crs: "EPSG:2804",
+    fields: {},
+    verifiedOn: "2026-11-24",
+    notes: "Surface model; usable for bridge decks where the bare-earth DTM drops into the valley. Flattened over White House / Capitol redaction rectangles.",
+  },
+  {
+    id: "lrs_bridge",
+    name: "DDOT LRS — Bridge",
+    url: `${DDOT}/DDOTLRS/MapServer/128`,
+    crs: "EPSG:26985",
+    count: 273,
+    fields: { ROUTEID: "LRS route id", FROMMEASURE: "start (m)", TOMEASURE: "end (m)", BRKEY: "bridge key", BRIDGE_NAME: "name", BRIDGE_TYPE: "type", OWNERSHIP: "owner" },
+    verifiedOn: "2026-11-24",
+  },
+  {
+    id: "lrs_structure",
+    name: "DDOT LRS — Structure",
+    url: `${DDOT}/DDOTLRS/MapServer/16`,
+    crs: "EPSG:26985",
+    fields: { ROUTEID: "LRS route id", FROMMEASURE: "start (m)", TOMEASURE: "end (m)", STRUCTURE_TYPE: "1=bridge 2=tunnel 3=causeway" },
+    verifiedOn: "2026-11-24",
+  },
+  {
     id: "traffic_volume_2024",
     name: "2024 Traffic Volume (AADT by roadway block)",
     url: "https://opendata.dc.gov/api/download/v1/items/948099175f3a44cca2d6a633cf3ec35a/geojson?layers=5",
@@ -196,3 +246,9 @@ export const sources: DataSource[] = [
     notes: "Not yet audited. Compare against lrs_aadt.",
   },
 ];
+
+export function getSource(id: string): DataSource {
+  const s = sources.find((x) => x.id === id);
+  if (!s) throw new Error(`Unknown source "${id}" — add it to pipeline/src/sources.ts`);
+  return s;
+}

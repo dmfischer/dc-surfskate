@@ -134,7 +134,8 @@ Most DDOT data is served from one ArcGIS server, `https://rh.dcgis.dc.gov/dcgis/
 | Paving projects | DDOT Paving Plan / PaveDC (ArcGIS item `76784c82ddcb4fb798769138f27c0ed3`) | Open-data copy may lag; the live PaveDC map layer may be fresher. Paving season is spring–fall. |
 | Paving (secondary) | DDOT Weekly Construction Updates | Press releases, two-week lookahead, not an API |
 | Potholes | Open Data DC: 311 service requests | Snap to nearest segment |
-| Elevation / grade | Open Data DC: 2024 LiDAR Hydro-Enforced Digital Terrain Model (1 m) | Redacted areas near federal sites. GeoTIFFs may require emailing open.data@dc.gov; NOAA Digital Coast also mirrors DC DEMs. |
+| Elevation / grade | DC OCTO 2024 Hydro-Enforced DTM ImageServer (`imagery.dcgis.dc.gov/.../Lidar/Hydro_Enforced_DTM_2024/ImageServer`) | 1 m, native EPSG:2804; export in 26985. Tiles and exportImage GeoTIFFs are public (no email request). Bridges read as valleys; see `docs/research/steepness.md`. |
+| Ward boundaries | DCGIS `Administrative_Other_Boundaries/MapServer/53` (Ward 2022) | Area filter, set in `config/area.json` |
 | Traffic volume | Open Data DC: 2024 Traffic Volume (AADT by roadway block) | Counts are on a 3-year cycle at HPMS locations; many local streets have no count |
 | Bike lanes, crashes | Open Data DC | |
 | Intersection controls | **Unverified** | Hardest field; optional for v1 |

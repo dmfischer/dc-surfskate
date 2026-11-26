@@ -1,0 +1,6 @@
+{
+  "_note": "Area the pipeline processes. Boundary comes from the ward_2022 source in pipeline/src/sources.ts.",
+  "name": "Ward 1",
+  "ward": 1,
+  "bufferM": 50
+}

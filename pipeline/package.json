@@ -10,5 +10,13 @@
     "build": "tsx src/build.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.4.0",
+    "geotiff": "^3.0.5",
+    "proj4": "^2.23.0"
+  },
+  "devDependencies": {
+    "@types/proj4": "^2.5.6"
   }
 }
