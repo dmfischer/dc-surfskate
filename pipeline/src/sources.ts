@@ -100,7 +100,43 @@ export const sources: DataSource[] = [
       LANES: "lane count",
     },
     verifiedOn: "2026-11-24",
-    notes: "Other years are layers 0–14 (FY-12..FY-24). 5,741 sections vs ~13.8k blocks, so coverage is partial; check overlap during join. CONST_DATE / LSTMJRWRKD were null in the sample.",
+    notes:
+      "Other years are layers 0–14 (FY-12..FY-24). 5,741 sections vs ~13.8k blocks, so coverage is partial; check overlap during join. CONST_DATE / LSTMJRWRKD were null in the sample. " +
+      "2026-11-25: HPMSID, UNIQUEID, NETWORKID, BRANCHID are null for all 5,741 rows and SECTIONID is a per-route sequence ('001'...), so ROUTEID + measure overlap is the only join to blocks. " +
+      "Ward 1: 447 sections (all AC/PCC, DATE1 2023-06..2026-03); 404 have both ends on block ends (<1 m); 451/874 blocks (55 of 110 km) covered, coverage is all-or-nothing per block.",
+  },
+  {
+    id: "lrs_iri",
+    name: "DDOT LRS — IRI (International Roughness Index)",
+    url: `${DDOT}/DDOTLRS/MapServer/39`,
+    crs: "EPSG:26985",
+    count: 22412,
+    maxRecordCount: 3000,
+    fields: {
+      ROUTEID: "LRS route id",
+      FROMMEASURE: "start measure (m)",
+      TOMEASURE: "end measure (m)",
+      IRI: "roughness, integer; values ~100–400 suggest in/mi (unit not stated in metadata)",
+      IRI_DATE: "survey date (2010-05 to 2020-01; mostly 2014, 2017, 2019)",
+      VALUE_DATE: "2022-12-31 when set, else null",
+      IRI_VALUE_TEXT: "text value",
+      FROMDATE: "event start date",
+      TODATE: "null for all rows",
+    },
+    verifiedOn: "2026-11-25",
+    notes:
+      "Newest IRI in DC open data (latest IRI_DATE 2020-01-01). Several survey years coexist with TODATE null, so take the latest IRI_DATE per interval. " +
+      "Ward 1: 1,745 events; ~51% of block length covered, almost entirely the same blocks PCI FY-25 covers (only 11 null-PCI blocks gain IRI).",
+  },
+  {
+    id: "pavement_iri_2014",
+    name: "DDOT Pavement — IRI 2014 (legacy)",
+    url: "https://maps2.dcgis.dc.gov/DCGIS/rest/services/DDOT/Pavement/MapServer/3",
+    year: 2014,
+    count: 14816,
+    fields: { SSRSEGID: "street segment id", IRI: "roughness", Lane1: "per-lane IRI (Lane1..Lane10)", BikeLane1: "bike lane IRI (BikeLane1, BikeLane2)", Ward: "ward" },
+    verifiedOn: "2026-11-25",
+    notes: "Service holds only PCI 2012/2013/2014 (layers 0–2) and IRI 2014 (layer 3). Superseded by lrs_iri.",
   },
   {
     id: "lrs_year_last_improvement",
