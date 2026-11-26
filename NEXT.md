@@ -16,10 +16,15 @@ DDOT blocks joined with **PCI FY-25** and **along-street grade from the 2024 1 m
   Ward 1: 873 segments (1 duplicate DDOT block dropped), 110.4 km; PCI on 450, |grade| <1% 335 / 1–4% 387 / 4–6% 114 /
   6–8% 21 / >8% 16; 6 bridge-flagged.
   Reprojection uses proj4 NAD83 → WGS84 with no datum shift; ArcGIS's own outSR=4326 differs by ~0.9 m (HARN transform). Fine for display.
+- `feat/map-viewer`: `/web` (Vite + React + MapLibre 6). `npm run pipeline` then `npm run web`. Loads
+  `data/output/segments.geojson` via a small Vite plugin that serves `/data/*` in dev and copies it into `dist/data` on build.
+  Modes: Pavement condition, Grade (|mean|), Smooth & gentle (PCI ≥ 80 and 1–4%). Styling and breaks in `config/map.json`.
+  Basemap: OpenFreeMap Positron (no API key). Bridge / unreliable grades render dashed gray.
+  Gotchas: MapLibre 6 loads `maplibre-gl-worker.mjs` relative to its module, so `optimizeDeps.exclude: ["maplibre-gl"]`
+  is required; and it has no default export (use named imports). `window.__map` is exposed in dev for debugging.
 
 ## Next
 
-- `feat/map-viewer`: React + MapLibre viewer of `segments.geojson` (PCI / grade toggle, popups).
 - DSM bridge correction; dedupe the duplicate block in `join`; null-PCI policy for scoring; Adams Mill Rd jump check.
 
 ## Open questions

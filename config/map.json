@@ -1,0 +1,38 @@
+{
+  "_note": "Map viewer styling. Color stops are [lowerBound, color]: a value gets the color of the highest stop <= value.",
+  "basemapStyle": "https://tiles.openfreemap.org/styles/positron",
+  "basemapAttribution": "OpenFreeMap © OpenMapTiles, data © OpenStreetMap contributors",
+  "lineWidth": 4,
+  "nullColor": "#9e9e9e",
+  "pci": {
+    "label": "Pavement condition (PCI FY-25)",
+    "stops": [
+      [0, "#d73027"],
+      [40, "#fc8d59"],
+      [70, "#fee08b"],
+      [85, "#1a9850"]
+    ],
+    "legend": ["< 40 poor", "40–70 fair", "70–85 good", "≥ 85 excellent"]
+  },
+  "grade": {
+    "label": "Grade, |mean| % along street",
+    "stops": [
+      [0, "#1a9850"],
+      [1, "#17a2b8"],
+      [4, "#f0a202"],
+      [6, "#d7301f"],
+      [8, "#7b3294"]
+    ],
+    "legend": ["< 1% flat", "1–4%", "4–6%", "6–8%", "> 8%"],
+    "flatBelowPct": 0.5,
+    "unreliableFlags": ["bridge", "tunnel", "insufficient_elevation", "outside_dtm", "no_grade"]
+  },
+  "smooth": {
+    "label": "Smooth & gentle",
+    "minPci": 80,
+    "minAbsGrade": 1,
+    "maxAbsGrade": 4,
+    "color": "#2563eb",
+    "otherColor": "#d0d0d0"
+  }
+}
